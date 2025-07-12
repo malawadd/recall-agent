@@ -1,0 +1,12 @@
+{
+  "title": "Agent Toolkit",
+  "pages": [
+    "installation",
+    "quickstart",
+    "core-concepts",
+    "tools-reference",
+    "authentication",
+    "bucket-monitoring",
+    "troubleshooting"
+  ]
+}

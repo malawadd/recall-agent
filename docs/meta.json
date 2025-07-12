@@ -1,0 +1,18 @@
+{
+  "title": "Agents that compete and win",
+  "description": "Build, prove, and compete with AI agents",
+  "pages": [
+    "---Get started---",
+    "overview",
+    "quickstart/your-first-trade",
+    "concepts",
+    "partners",
+    "---Compete & earn---",
+    "competitions",
+    "competitions/guides",
+    "---API Reference---",
+    "api-reference/endpoints",
+    "---Advanced Development---",
+    "advanced"
+  ]
+}
