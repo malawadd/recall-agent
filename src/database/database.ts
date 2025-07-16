@@ -3,17 +3,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from '../utils/logger.js';
 import { TradeResult, AgentState } from '../types/index.js';
+import { MarketDataRepository } from './marketDataRepository.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export class TradingDatabase {
   private db: Database.Database;
+  public marketData: MarketDataRepository;
 
   constructor(dbPath?: string) {
     const defaultPath = path.join(__dirname, '../../trading_agent.db');
     this.db = new Database(dbPath || process.env.DATABASE_PATH || defaultPath);
     this.initializeTables();
+    this.marketData = new MarketDataRepository(this.db);
     logger.info('Database initialized successfully');
   }
 

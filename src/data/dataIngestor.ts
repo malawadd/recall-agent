@@ -1,14 +1,17 @@
 import logger from '../utils/logger.js';
 import RecallApiClient from '../api/recallApiClient.js';
 import { Portfolio, MarketData, TOKENS } from '../types/index.js';
+import { MarketDataRepository } from '../database/marketDataRepository.js';
 
 export class DataIngestor {
   private apiClient: RecallApiClient;
+  private marketDataRepository: MarketDataRepository;
   private priceCache: Map<string, { price: number; timestamp: number }> = new Map();
   private cacheTimeout: number = 60000; // 1 minute cache
 
-  constructor(apiClient: RecallApiClient) {
+  constructor(apiClient: RecallApiClient, marketDataRepository: MarketDataRepository) {
     this.apiClient = apiClient;
+    this.marketDataRepository = marketDataRepository;
   }
 
   async getMarketData(): Promise<MarketData> {
