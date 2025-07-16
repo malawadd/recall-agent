@@ -7,6 +7,8 @@ interface TradingAgentInterface {
   getStatus(): Promise<any>;
   pauseTrading(): Promise<void>;
   resumeTrading(): Promise<void>;
+  updateStrategyParams(newParams: any): Promise<void>;
+  updateRiskParams(newParams: any): Promise<void>;
 }
 
 export class CommandServer {
