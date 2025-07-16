@@ -7,6 +7,7 @@ import { StrategyParamsManager } from './strategy/strategyParams.js';
 import RiskManager from './risk/riskManager.js';
 import TradingDatabase from './database/database.js';
 import { CommandServer } from './control/commandServer.js';
+import TimeUtils from './utils/timeUtils.js';
 import { AgentState, TradingDecision, TradeRequest } from './types/index.js';
 
 // Load environment variables
@@ -23,6 +24,7 @@ export class TradingAgent {
   private agentState: AgentState;
   private isRunning: boolean = false;
   private tradeInterval: number;
+  private baseTradeInterval: number;
 
   constructor() {
     // Validate required environment variables
@@ -48,7 +50,8 @@ export class TradingAgent {
     this.agentState = this.loadAgentState();
     
     // Set trade interval (default: 5 minutes)
-    this.tradeInterval = parseInt(process.env.TRADE_INTERVAL_MS || '300000');
+    this.baseTradeInterval = parseInt(process.env.TRADE_INTERVAL_MS || '300000');
+    this.tradeInterval = this.baseTradeInterval;
 
     logger.info('Trading agent initialized successfully', {
       agentId: this.agentState.id,
@@ -190,6 +193,9 @@ export class TradingAgent {
     try {
       logger.info('Starting trading cycle...');
 
+      // Apply time-based adjustments
+      this.applyTimeBasedAdjustments();
+
       // Check if we should stop trading due to risk conditions
       const marketData = await this.dataIngestor.getMarketData();
       
@@ -232,6 +238,53 @@ export class TradingAgent {
 
     } catch (error) {
       logger.error('Error in trading cycle', { error });
+    }
+  }
+
+  private applyTimeBasedAdjustments(): void {
+    try {
+      const strategyParams = this.strategyParamsManager.getParams();
+      const {
+        peakLiquidityHours,
+        peakTradeIntervalMultiplier,
+        offPeakTradeIntervalMultiplier,
+        peakPositionSizeMultiplier,
+        offPeakPositionSizeMultiplier
+      } = strategyParams;
+
+      // Adjust trade interval based on current time
+      this.tradeInterval = TimeUtils.getAdjustedTradeInterval(
+        this.baseTradeInterval,
+        peakLiquidityHours,
+        peakTradeIntervalMultiplier,
+        offPeakTradeIntervalMultiplier
+      );
+
+      // Adjust position size in risk manager
+      const positionSizeMultiplier = TimeUtils.getPositionSizeMultiplier(
+        peakLiquidityHours,
+        peakPositionSizeMultiplier,
+        offPeakPositionSizeMultiplier
+      );
+
+      const baseMaxPositionSize = parseFloat(process.env.MAX_POSITION_SIZE_PERCENT || '20') / 100;
+      const adjustedMaxPositionSize = baseMaxPositionSize * positionSizeMultiplier;
+      
+      this.riskManager.updateMaxPositionSize(adjustedMaxPositionSize);
+
+      // Also update strategy params for consistency
+      this.strategyParamsManager.setParam('maxPositionSize', adjustedMaxPositionSize);
+
+      const timePeriod = TimeUtils.getCurrentTimePeriod(peakLiquidityHours);
+      logger.info('Time-based adjustments applied', {
+        timePeriod,
+        tradeInterval: this.tradeInterval,
+        positionSizeMultiplier,
+        adjustedMaxPositionSize: (adjustedMaxPositionSize * 100).toFixed(1) + '%'
+      });
+
+    } catch (error) {
+      logger.error('Error applying time-based adjustments', { error });
     }
   }
 
@@ -354,6 +407,16 @@ export class TradingAgent {
 
   getTradeHistory(limit: number = 50): any[] {
     return this.database.getTradeHistory(limit);
+  }
+
+  async updateStrategyParams(newParams: any): Promise<void> {
+    logger.info('Updating strategy parameters', { newParams });
+    this.strategyParamsManager.updateParams(newParams);
+  }
+
+  async updateRiskParams(newParams: any): Promise<void> {
+    logger.info('Updating risk parameters', { newParams });
+    this.riskManager.updateRiskParams(newParams);
   }
 }
 

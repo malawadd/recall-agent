@@ -248,6 +248,11 @@ export class RiskManager {
     logger.info('Risk parameters updated', { newParams });
   }
 
+  updateMaxPositionSize(newMax: number): void {
+    this.riskParams.maxPositionSize = newMax;
+    logger.info('Max position size updated', { newMaxPositionSize: newMax });
+  }
+
   getRiskParams(): typeof this.riskParams {
     return { ...this.riskParams };
   }

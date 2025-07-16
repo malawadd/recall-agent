@@ -11,6 +11,16 @@ export interface StrategyParams {
   meanReversionDeviationThreshold: number;
   trendFollowingShortSmaPeriod: number;
   trendFollowingLongSmaPeriod: number;
+  // Breakout Strategy Parameters
+  breakoutLookbackPeriod: number;
+  breakoutVolatilityThreshold: number;
+  breakoutConfirmationFactor: number;
+  // Time-Based Strategy Parameters
+  peakLiquidityHours: { start: number; end: number; }[];
+  peakTradeIntervalMultiplier: number;
+  offPeakTradeIntervalMultiplier: number;
+  peakPositionSizeMultiplier: number;
+  offPeakPositionSizeMultiplier: number;
 }
 
 export class StrategyParamsManager {
@@ -38,7 +48,20 @@ export class StrategyParamsManager {
       meanReversionLookbackPeriod: 20,
       meanReversionDeviationThreshold: 0.02,
       trendFollowingShortSmaPeriod: 10,
-      trendFollowingLongSmaPeriod: 50
+      trendFollowingLongSmaPeriod: 50,
+      // Breakout Strategy Defaults
+      breakoutLookbackPeriod: 50,
+      breakoutVolatilityThreshold: 0.01, // 1% volatility threshold for consolidation
+      breakoutConfirmationFactor: 0.005, // 0.5% price movement to confirm breakout
+      // Time-Based Strategy Defaults
+      peakLiquidityHours: [
+        { start: 13, end: 21 }, // 1 PM to 9 PM UTC (US/EU overlap)
+        { start: 0, end: 2 }    // 12 AM to 2 AM UTC (Asia open)
+      ],
+      peakTradeIntervalMultiplier: 0.6,    // More frequent trades during peak hours
+      offPeakTradeIntervalMultiplier: 1.5, // Less frequent trades during off-peak
+      peakPositionSizeMultiplier: 1.2,     // Slightly larger positions during peak
+      offPeakPositionSizeMultiplier: 0.8   // Smaller positions during off-peak
     };
   }
 

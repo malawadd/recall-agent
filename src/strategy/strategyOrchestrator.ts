@@ -3,12 +3,14 @@ import { MarketData, TradingDecision, TOKENS } from '../types/index.js';
 import { StrategyParamsManager } from './strategyParams.js';
 import { MeanReversionStrategy } from './meanReversionStrategy.js';
 import { TrendFollowingStrategy } from './trendFollowingStrategy.js';
+import { BreakoutStrategy } from './breakoutStrategy.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
 
 export class StrategyOrchestrator {
   private paramsManager: StrategyParamsManager;
   private meanReversionStrategy: MeanReversionStrategy;
   private trendFollowingStrategy: TrendFollowingStrategy;
+  private breakoutStrategy: BreakoutStrategy;
   private marketDataRepository: MarketDataRepository;
 
   constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository) {
@@ -16,6 +18,7 @@ export class StrategyOrchestrator {
     this.marketDataRepository = marketDataRepository;
     this.meanReversionStrategy = new MeanReversionStrategy(paramsManager, marketDataRepository);
     this.trendFollowingStrategy = new TrendFollowingStrategy(paramsManager, marketDataRepository);
+    this.breakoutStrategy = new BreakoutStrategy(paramsManager, marketDataRepository);
 
     logger.info('Strategy orchestrator initialized');
   }
@@ -30,8 +33,9 @@ export class StrategyOrchestrator {
       // Strategy priority order:
       // 1. Rebalancing (highest priority - maintain target allocations)
       // 2. Trend Following (medium-high priority - catch strong trends)
-      // 3. Mean Reversion (medium priority - profit from price corrections)
-      // 4. Momentum (lowest priority - fallback strategy)
+      // 3. Breakout (medium-high priority - catch new trends early)
+      // 4. Mean Reversion (medium priority - profit from price corrections)
+      // 5. Momentum (lowest priority - fallback strategy)
 
       // Check rebalancing strategy first
       const rebalanceDecision = this.checkRebalancing(marketData);
@@ -45,6 +49,13 @@ export class StrategyOrchestrator {
       if (trendDecision) {
         logger.info('Trend following decision made', { decision: trendDecision });
         return trendDecision;
+      }
+
+      // Check breakout strategy
+      const breakoutDecision = await this.breakoutStrategy.checkBreakout(marketData);
+      if (breakoutDecision) {
+        logger.info('Breakout decision made', { decision: breakoutDecision });
+        return breakoutDecision;
       }
 
       // Check mean reversion strategy

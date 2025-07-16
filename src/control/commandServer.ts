@@ -118,6 +118,44 @@ export class CommandServer {
       }
     });
 
+    // POST /command/update-strategy-params - Update strategy parameters
+    this.app.post('/command/update-strategy-params', async (req: Request, res: Response) => {
+      try {
+        const newParams = req.body;
+        await this.agent.updateStrategyParams(newParams);
+        res.json({
+          success: true,
+          message: 'Strategy parameters updated successfully',
+          params: newParams
+        });
+      } catch (error) {
+        logger.error('Error updating strategy parameters', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update strategy parameters'
+        });
+      }
+    });
+
+    // POST /command/update-risk-params - Update risk parameters
+    this.app.post('/command/update-risk-params', async (req: Request, res: Response) => {
+      try {
+        const newParams = req.body;
+        await this.agent.updateRiskParams(newParams);
+        res.json({
+          success: true,
+          message: 'Risk parameters updated successfully',
+          params: newParams
+        });
+      } catch (error) {
+        logger.error('Error updating risk parameters', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update risk parameters'
+        });
+      }
+    });
+
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({
