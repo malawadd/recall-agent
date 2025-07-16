@@ -2,9 +2,11 @@ import dotenv from 'dotenv';
 import logger from './utils/logger.js';
 import RecallApiClient from './api/recallApiClient.js';
 import DataIngestor from './data/dataIngestor.js';
-import TradingStrategy from './strategy/strategy.js';
+import StrategyOrchestrator from './strategy/strategyOrchestrator.js';
+import { StrategyParamsManager } from './strategy/strategyParams.js';
 import RiskManager from './risk/riskManager.js';
 import TradingDatabase from './database/database.js';
+import { CommandServer } from './control/commandServer.js';
 import { AgentState, TradingDecision, TradeRequest } from './types/index.js';
 
 // Load environment variables
@@ -13,9 +15,11 @@ dotenv.config();
 export class TradingAgent {
   private apiClient: RecallApiClient;
   private dataIngestor: DataIngestor;
-  private strategy: TradingStrategy;
+  private strategyOrchestrator: StrategyOrchestrator;
+  private strategyParamsManager: StrategyParamsManager;
   private riskManager: RiskManager;
   private database: TradingDatabase;
+  private commandServer: CommandServer;
   private agentState: AgentState;
   private isRunning: boolean = false;
   private tradeInterval: number;
@@ -30,10 +34,15 @@ export class TradingAgent {
       process.env.RECALL_API_URL
     );
     
-    this.dataIngestor = new DataIngestor(this.apiClient);
-    this.strategy = new TradingStrategy();
-    this.riskManager = new RiskManager();
     this.database = new TradingDatabase();
+    this.dataIngestor = new DataIngestor(this.apiClient, this.database.marketData);
+    this.strategyParamsManager = new StrategyParamsManager();
+    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData);
+    this.riskManager = new RiskManager();
+    
+    // Initialize command server
+    const commandServerPort = parseInt(process.env.COMMAND_SERVER_PORT || '3001');
+    this.commandServer = new CommandServer(this, commandServerPort);
 
     // Load agent state
     this.agentState = this.loadAgentState();
@@ -104,6 +113,9 @@ export class TradingAgent {
 
     // Start main trading loop
     this.runTradingLoop();
+
+    // Start command server
+    this.commandServer.start();
   }
 
   stop(): void {
@@ -111,6 +123,7 @@ export class TradingAgent {
     this.isRunning = false;
     this.agentState.isActive = false;
     this.database.saveAgentState(this.agentState);
+    this.commandServer.stop();
     this.database.close();
   }
 
@@ -188,7 +201,7 @@ export class TradingAgent {
       }
 
       // Get trading decision from strategy
-      const decision = await this.strategy.makeDecision(marketData);
+      const decision = await this.strategyOrchestrator.makeDecision(marketData);
       
       if (!decision) {
         logger.info('No trading decision made this cycle');
@@ -219,6 +232,42 @@ export class TradingAgent {
 
     } catch (error) {
       logger.error('Error in trading cycle', { error });
+    }
+  }
+
+  // Method for processing external commands from the command server
+  async processExternalCommand(decision: TradingDecision): Promise<void> {
+    try {
+      logger.info('Processing external command', { decision });
+
+      // Get current market data for validation
+      const marketData = await this.dataIngestor.getMarketData();
+      
+      // Validate the external command with risk manager
+      const validation = this.riskManager.validateTrade(decision, marketData, this.agentState);
+      
+      if (!validation.isValid) {
+        logger.warn('External command rejected by risk manager', { reason: validation.reason });
+        throw new Error(`Trade rejected: ${validation.reason}`);
+      }
+
+      // Execute the trade
+      await this.executeTrade(decision);
+
+      // Update agent state
+      this.agentState.totalTrades += 1;
+      this.agentState.lastTradeTime = new Date().toISOString();
+      this.agentState.updatedAt = new Date().toISOString();
+      this.database.saveAgentState(this.agentState);
+
+      // Record trade for frequency tracking
+      this.riskManager.recordTrade(decision.amount);
+
+      logger.info('External command executed successfully', { decision });
+
+    } catch (error) {
+      logger.error('Error processing external command', { error, decision });
+      throw error;
     }
   }
 
