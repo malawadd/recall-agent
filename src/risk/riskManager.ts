@@ -15,12 +15,12 @@ export class RiskManager {
 
   constructor() {
     this.riskParams = {
-      maxDailyLoss: parseFloat(process.env.MAX_DAILY_LOSS_PERCENT || '5') / 100,
-      maxPositionSize: parseFloat(process.env.MAX_POSITION_SIZE_PERCENT || '20') / 100,
+      maxDailyLoss: parseFloat(process.env.MAX_DAILY_LOSS_PERCENT || '15') / 100, // 15% daily loss (SUPER RISKY)
+      maxPositionSize: parseFloat(process.env.MAX_POSITION_SIZE_PERCENT || '50') / 100, // 50% position size (SUPER RISKY)
       minTradeAmount: parseFloat(process.env.MIN_TRADE_AMOUNT_USDC || '10'),
-      maxTradesPerHour: 10,
-      stopLossThreshold: 0.02, // 2% stop loss
-      maxDrawdown: 0.15 // 15% max drawdown
+      maxTradesPerHour: 60, // 1 trade per minute (SUPER RISKY)
+      stopLossThreshold: 0.05, // 5% stop loss (more room to move)
+      maxDrawdown: 0.30 // 30% max drawdown (SUPER RISKY)
     };
 
     logger.info('Risk manager initialized', { riskParams: this.riskParams });

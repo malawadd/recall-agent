@@ -4,6 +4,7 @@ import { StrategyParamsManager } from './strategyParams.js';
 import { MeanReversionStrategy } from './meanReversionStrategy.js';
 import { TrendFollowingStrategy } from './trendFollowingStrategy.js';
 import { BreakoutStrategy } from './breakoutStrategy.js';
+import { ArbitrageStrategy } from './arbitrageStrategy.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
 
 export class StrategyOrchestrator {
@@ -11,6 +12,7 @@ export class StrategyOrchestrator {
   private meanReversionStrategy: MeanReversionStrategy;
   private trendFollowingStrategy: TrendFollowingStrategy;
   private breakoutStrategy: BreakoutStrategy;
+  private arbitrageStrategy: ArbitrageStrategy;
   private marketDataRepository: MarketDataRepository;
 
   constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository) {
@@ -19,6 +21,7 @@ export class StrategyOrchestrator {
     this.meanReversionStrategy = new MeanReversionStrategy(paramsManager, marketDataRepository);
     this.trendFollowingStrategy = new TrendFollowingStrategy(paramsManager, marketDataRepository);
     this.breakoutStrategy = new BreakoutStrategy(paramsManager, marketDataRepository);
+    this.arbitrageStrategy = new ArbitrageStrategy(paramsManager, marketDataRepository);
 
     logger.info('Strategy orchestrator initialized');
   }
@@ -36,43 +39,52 @@ export class StrategyOrchestrator {
       // 3. Breakout (medium-high priority - catch new trends early)
       // 4. Mean Reversion (medium priority - profit from price corrections)
       // 5. Momentum (lowest priority - fallback strategy)
+      // 6. Arbitrage (GUARANTEED - ensures every cycle has a trade)
 
       // Check rebalancing strategy first
       const rebalanceDecision = this.checkRebalancing(marketData);
       if (rebalanceDecision) {
-        logger.info('Rebalancing decision made', { decision: rebalanceDecision });
+        logger.info('🎯 Rebalancing decision made', { decision: rebalanceDecision });
         return rebalanceDecision;
       }
 
       // Check trend following strategy
       const trendDecision = await this.trendFollowingStrategy.checkTrendFollowing(marketData);
       if (trendDecision) {
-        logger.info('Trend following decision made', { decision: trendDecision });
+        logger.info('📈 Trend following decision made', { decision: trendDecision });
         return trendDecision;
       }
 
       // Check breakout strategy
       const breakoutDecision = await this.breakoutStrategy.checkBreakout(marketData);
       if (breakoutDecision) {
-        logger.info('Breakout decision made', { decision: breakoutDecision });
+        logger.info('🚀 Breakout decision made', { decision: breakoutDecision });
         return breakoutDecision;
       }
 
       // Check mean reversion strategy
       const meanReversionDecision = await this.meanReversionStrategy.checkMeanReversion(marketData);
       if (meanReversionDecision) {
-        logger.info('Mean reversion decision made', { decision: meanReversionDecision });
+        logger.info('🔄 Mean reversion decision made', { decision: meanReversionDecision });
         return meanReversionDecision;
       }
 
       // Fallback to momentum strategy
       const momentumDecision = this.checkMomentumStrategy(marketData);
       if (momentumDecision) {
-        logger.info('Momentum strategy decision made', { decision: momentumDecision });
+        logger.info('⚡ Momentum strategy decision made', { decision: momentumDecision });
         return momentumDecision;
       }
 
-      logger.info('No trading decision made - holding current positions');
+      // GUARANTEED TRADE: If no other strategy triggers, force an arbitrage swap
+      const arbitrageDecision = await this.arbitrageStrategy.checkArbitrage(marketData);
+      if (arbitrageDecision) {
+        logger.info('🔀 GUARANTEED arbitrage trade executed - no cycle goes without a trade!', { decision: arbitrageDecision });
+        return arbitrageDecision;
+      }
+
+      // This should never happen now, but just in case
+      logger.warn('⚠️  Even arbitrage strategy failed - this should not happen!');
       return null;
 
     } catch (error) {

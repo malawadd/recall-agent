@@ -158,6 +158,37 @@ export class CommandServer {
       }
     });
 
+    // POST /command/force-trade - Force an immediate trade (for testing)
+    this.app.post('/command/force-trade', async (req: Request, res: Response) => {
+      try {
+        const { fromToken, toToken, amount, reason } = req.body;
+        
+        const forcedDecision = {
+          action: 'buy' as const,
+          fromToken: fromToken || '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // Default to USDC
+          toToken: toToken || '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // Default to WETH
+          amount: amount || 25, // Default $25
+          reason: reason || 'Manual forced trade via command server',
+          confidence: 0.1
+        };
+
+        await this.agent.processExternalCommand(forcedDecision);
+
+        res.json({
+          success: true,
+          message: 'Forced trade executed successfully',
+          decision: forcedDecision
+        });
+
+      } catch (error) {
+        logger.error('Error executing forced trade', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to execute forced trade'
+        });
+      }
+    });
+
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({

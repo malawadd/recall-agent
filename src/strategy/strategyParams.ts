@@ -39,27 +39,27 @@ export class StrategyParamsManager {
       maxPositionSize: parseFloat(process.env.MAX_POSITION_SIZE_PERCENT || '20') / 100,
       minTradeAmount: parseFloat(process.env.MIN_TRADE_AMOUNT_USDC || '10'),
       riskLevel: (process.env.RISK_LEVEL as 'low' | 'medium' | 'high') || 'medium',
-      rebalanceThreshold: 0.05, // 5% deviation triggers rebalancing
+      rebalanceThreshold: 0.01, // 1% deviation triggers rebalancing (SUPER RISKY)
       targetAllocations: {
         [TOKENS.USDC]: 0.4,  // 40% USDC (stable base)
         [TOKENS.WETH]: 0.35, // 35% WETH (main crypto exposure)
         [TOKENS.WBTC]: 0.25  // 25% WBTC (diversification)
       },
       meanReversionLookbackPeriod: 20,
-      meanReversionDeviationThreshold: 0.02,
+      meanReversionDeviationThreshold: 0.01, // 1% deviation (SUPER RISKY)
       trendFollowingShortSmaPeriod: 10,
       trendFollowingLongSmaPeriod: 50,
       // Breakout Strategy Defaults
       breakoutLookbackPeriod: 50,
-      breakoutVolatilityThreshold: 0.01, // 1% volatility threshold for consolidation
-      breakoutConfirmationFactor: 0.005, // 0.5% price movement to confirm breakout
+      breakoutVolatilityThreshold: 0.02, // 2% volatility threshold (easier to trigger)
+      breakoutConfirmationFactor: 0.002, // 0.2% price movement (SUPER SENSITIVE)
       // Time-Based Strategy Defaults
       peakLiquidityHours: [
         { start: 13, end: 21 }, // 1 PM to 9 PM UTC (US/EU overlap)
         { start: 0, end: 2 }    // 12 AM to 2 AM UTC (Asia open)
       ],
-      peakTradeIntervalMultiplier: 0.6,    // More frequent trades during peak hours
-      offPeakTradeIntervalMultiplier: 1.5, // Less frequent trades during off-peak
+      peakTradeIntervalMultiplier: 0.4,    // MUCH more frequent trades during peak hours
+      offPeakTradeIntervalMultiplier: 1.0, // More frequent trades during off-peak
       peakPositionSizeMultiplier: 1.2,     // Slightly larger positions during peak
       offPeakPositionSizeMultiplier: 0.8   // Smaller positions during off-peak
     };
