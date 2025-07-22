@@ -1,4 +1,4 @@
-```markdown
+
 # Trading Agent Command Center API Reference
 
 This document provides a comprehensive reference for the API endpoints exposed by your Trading Agent's Command Center. You can use these endpoints to monitor, control, and interact with your agent.
@@ -222,7 +222,7 @@ The Command Center runs an Express server, typically on port `3001` (configurabl
       }
     }
     ```
-```
+
 
 ### 9. `POST /command/toggle-llm-strategy`
 
