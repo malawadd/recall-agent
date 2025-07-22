@@ -10,7 +10,6 @@ import { CommandServer } from './control/commandServer.js';
 import TimeUtils from './utils/timeUtils.js';
 import { AgentState, TradingDecision, TradeRequest } from './types/index.js';
 import { OpenAIClient } from './api/openaiClient.js';
-import { OpenAIClient } from './api/openaiClient.js';
 
 // Load environment variables
 dotenv.config();
@@ -22,7 +21,6 @@ export class TradingAgent {
   private strategyParamsManager: StrategyParamsManager;
   private riskManager: RiskManager;
   private database: TradingDatabase;
-  private openAIClient: OpenAIClient;
   private openAIClient: OpenAIClient;
   private commandServer: CommandServer;
   private agentState: AgentState;
@@ -50,13 +48,8 @@ export class TradingAgent {
       this.strategyParamsManager.getParam('llmModel'),
       this.strategyParamsManager.getParam('llmTemperature')
     );
-    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData, this.openAIClient, this.riskManager);
-      process.env.OPENAI_API_KEY!,
-      this.strategyParamsManager.getParam('llmModel'),
-      this.strategyParamsManager.getParam('llmTemperature')
-    );
-    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData, this.openAIClient, this.riskManager);
     this.riskManager = new RiskManager(this.strategyParamsManager);
+    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData, this.openAIClient, this.riskManager);
     
     // Initialize command server
     const commandServerPort = parseInt(process.env.COMMAND_SERVER_PORT || '3001');
@@ -433,16 +426,6 @@ export class TradingAgent {
   async updateRiskParams(newParams: any): Promise<void> {
     logger.info('Updating risk parameters', { newParams });
     this.riskManager.updateRiskParams(newParams);
-  }
-
-  async toggleLLMStrategy(enable: boolean): Promise<void> {
-    logger.info(`LLM strategy toggled to: ${enable}`);
-    this.strategyParamsManager.setParam('llmEnabled', enable);
-  }
-
-  async setLLMObjective(objective: 'maximize_profit' | 'maximize_loss'): Promise<void> {
-    logger.info(`LLM objective set to: ${objective}`);
-    this.strategyParamsManager.setParam('llmObjective', objective);
   }
 
   async toggleLLMStrategy(enable: boolean): Promise<void> {
