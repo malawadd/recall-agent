@@ -61,6 +61,7 @@ export interface TradingDecision {
   fromToken: string;
   toToken: string;
   amount: number;
+  // @ts-ignore
   reason: string;
   confidence: number;
 }

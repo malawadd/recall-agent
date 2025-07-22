@@ -9,6 +9,7 @@ import TradingDatabase from './database/database.js';
 import { CommandServer } from './control/commandServer.js';
 import TimeUtils from './utils/timeUtils.js';
 import { AgentState, TradingDecision, TradeRequest } from './types/index.js';
+import { OpenAIClient } from './api/openaiClient.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +21,7 @@ export class TradingAgent {
   private strategyParamsManager: StrategyParamsManager;
   private riskManager: RiskManager;
   private database: TradingDatabase;
+  private openAIClient: OpenAIClient;
   private commandServer: CommandServer;
   private agentState: AgentState;
   private isRunning: boolean = false;
@@ -38,8 +40,14 @@ export class TradingAgent {
     
     this.database = new TradingDatabase();
     this.dataIngestor = new DataIngestor(this.apiClient, this.database.marketData);
+    
     this.strategyParamsManager = new StrategyParamsManager();
-    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData);
+    this.openAIClient = new OpenAIClient(
+      process.env.OPENAI_API_KEY!,
+      this.strategyParamsManager.getParam('llmModel'),
+      this.strategyParamsManager.getParam('llmTemperature')
+    );
+    this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData, this.openAIClient, this.riskManager);
     this.riskManager = new RiskManager(this.strategyParamsManager);
     
     // Initialize command server
@@ -417,6 +425,16 @@ export class TradingAgent {
   async updateRiskParams(newParams: any): Promise<void> {
     logger.info('Updating risk parameters', { newParams });
     this.riskManager.updateRiskParams(newParams);
+  }
+
+  async toggleLLMStrategy(enable: boolean): Promise<void> {
+    logger.info(`LLM strategy toggled to: ${enable}`);
+    this.strategyParamsManager.setParam('llmEnabled', enable);
+  }
+
+  async setLLMObjective(objective: 'maximize_profit' | 'maximize_loss'): Promise<void> {
+    logger.info(`LLM objective set to: ${objective}`);
+    this.strategyParamsManager.setParam('llmObjective', objective);
   }
 
   async toggleLossStrategy(enable: boolean): Promise<void> {

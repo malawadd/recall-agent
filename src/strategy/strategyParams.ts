@@ -26,6 +26,11 @@ export interface StrategyParams {
   lossStrategyTargetAllocation: number;
   lossStrategyMinMarketCapUSD: number;
   lossStrategySelectionMethod: 'most_negative_change' | 'highest_volatility';
+  // LLM Strategy Parameters
+  llmEnabled: boolean;
+  llmModel: string;
+  llmTemperature: number;
+  llmObjective: 'maximize_profit' | 'maximize_loss';
 }
 
 export class StrategyParamsManager {
@@ -72,6 +77,11 @@ export class StrategyParamsManager {
       lossStrategyTargetAllocation: 0.95,   // Hold 95% of portfolio in losing token
       lossStrategyMinMarketCapUSD: 100_000_000, // $100M minimum market cap for liquidity
       lossStrategySelectionMethod: 'most_negative_change' // Pick the token losing the most
+      // LLM Strategy Defaults
+      llmEnabled: false,
+      llmModel: 'gpt-4o', // Default to GPT-4o
+      llmTemperature: 0.7,
+      llmObjective: 'maximize_profit', // Default objective
     };
   }
 

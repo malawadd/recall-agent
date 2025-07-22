@@ -7,6 +7,8 @@ import { BreakoutStrategy } from './breakoutStrategy.js';
 import { ArbitrageStrategy } from './arbitrageStrategy.js';
 import { LossStrategy } from './lossStrategy.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
+import { OpenAIClient } from '../api/openaiClient.js';
+import { RiskManager } from '../risk/riskManager.js';
 
 export class StrategyOrchestrator {
   private paramsManager: StrategyParamsManager;
@@ -16,8 +18,10 @@ export class StrategyOrchestrator {
   private arbitrageStrategy: ArbitrageStrategy;
   private lossStrategy: LossStrategy;
   private marketDataRepository: MarketDataRepository;
+  private openAIClient: OpenAIClient;
+  private riskManager: RiskManager; // Added to pass to LLM for context
 
-  constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository) {
+  constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository, openAIClient: OpenAIClient, riskManager: RiskManager) {
     this.paramsManager = paramsManager;
     this.marketDataRepository = marketDataRepository;
     this.meanReversionStrategy = new MeanReversionStrategy(paramsManager, marketDataRepository);
@@ -25,12 +29,35 @@ export class StrategyOrchestrator {
     this.breakoutStrategy = new BreakoutStrategy(paramsManager, marketDataRepository);
     this.arbitrageStrategy = new ArbitrageStrategy(paramsManager, marketDataRepository);
     this.lossStrategy = new LossStrategy(paramsManager);
+    this.openAIClient = openAIClient;
+    this.riskManager = riskManager;
 
     logger.info('Strategy orchestrator initialized');
   }
 
   async makeDecision(marketData: MarketData): Promise<TradingDecision | null> {
     try {
+      const params = this.paramsManager.getParams();
+
+      // 🧠 LLM Strategy (Highest Priority if enabled)
+      if (params.llmEnabled) {
+        logger.info('🧠 LLM Strategy is ENABLED - Requesting decision from AI...');
+        const llmDecision = await this.openAIClient.getTradingDecision({
+          portfolio: marketData.portfolio,
+          prices: marketData.prices,
+          agentState: { /* simplified agent state for LLM */ }, // Pass relevant parts
+          riskParams: this.riskManager.getRiskParams(), // Pass current risk parameters
+          objective: params.llmObjective,
+          marketInsights: {
+            topLosingTokens: await this.lossStrategy['coinGeckoClient'].getTopLosingTokens(params.lossStrategyMinMarketCapUSD, 5) // Provide top 5 losing tokens as insight
+          }
+        });
+        if (llmDecision) {
+          logger.info('🧠 LLM Strategy decision made', { decision: llmDecision });
+          return llmDecision;
+        }
+      }
+
       logger.info('Analyzing market data for trading decision...');
 
       // Save current market data for historical analysis
@@ -38,7 +65,7 @@ export class StrategyOrchestrator {
 
       // 🔴 HIGHEST PRIORITY: Check if LOSS STRATEGY is enabled (RED BUTTON!)
       const params = this.paramsManager.getParams();
-      if (params.lossStrategyEnabled) {
+      if (params.lossStrategyEnabled && !params.llmEnabled) { // Only if LLM is not enabled
         logger.warn('🔴 LOSS STRATEGY IS ACTIVE - ATTEMPTING TO LOSE ALL MONEY! 🔴');
         const lossDecision = await this.lossStrategy.checkLossStrategy(marketData);
         if (lossDecision) {

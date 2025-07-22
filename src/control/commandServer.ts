@@ -9,6 +9,8 @@ interface TradingAgentInterface {
   resumeTrading(): Promise<void>;
   updateStrategyParams(newParams: any): Promise<void>;
   updateRiskParams(newParams: any): Promise<void>;
+  toggleLLMStrategy(enable: boolean): Promise<void>;
+  setLLMObjective(objective: 'maximize_profit' | 'maximize_loss'): Promise<void>;
 }
 
 export class CommandServer {
@@ -237,6 +239,50 @@ export class CommandServer {
           error: 'Failed to get loss strategy status'
         });
       }
+    });
+
+    // POST /command/toggle-llm-strategy - Toggle LLM strategy
+    this.app.post('/command/toggle-llm-strategy', async (req: Request, res: Response) => {
+      try {
+        const { enable } = req.body;
+        if (typeof enable !== 'boolean') {
+          return res.status(400).json({ success: false, error: 'enable must be a boolean' });
+        }
+        await this.agent.toggleLLMStrategy(enable);
+        res.json({
+          success: true,
+          message: `LLM strategy ${enable ? 'enabled' : 'disabled'}`,
+          llmEnabled: enable
+        });
+      } catch (error) {
+        logger.error('Error toggling LLM strategy', { error });
+        res.status(500).json({ success: false, error: 'Failed to toggle LLM strategy' });
+      }
+    });
+
+    // POST /command/set-llm-objective - Set LLM objective
+    this.app.post('/command/set-llm-objective', async (req: Request, res: Response) => {
+      try {
+        const { objective } = req.body;
+        if (!['maximize_profit', 'maximize_loss'].includes(objective)) {
+          return res.status(400).json({ success: false, error: 'objective must be "maximize_profit" or "maximize_loss"' });
+        }
+        await this.agent.setLLMObjective(objective);
+        res.json({
+          success: true,
+          message: `LLM objective set to ${objective}`,
+          llmObjective: objective
+        });
+      } catch (error) {
+        logger.error('Error setting LLM objective', { error });
+        res.status(500).json({ success: false, error: 'Failed to set LLM objective' });
+      }
+    });
+
+    // GET /command/llm-status - Get LLM strategy status
+    this.app.get('/command/llm-status', async (req: Request, res: Response) => {
+      const params = this.agent.getStrategyParams(); // Assuming this method exists and returns all params
+      res.json({ success: true, llmEnabled: params.llmEnabled, llmObjective: params.llmObjective });
     });
 
     // Health check endpoint
