@@ -21,44 +21,41 @@ export class DataIngestor {
       // Fetch portfolio
       const portfolio = await this.apiClient.getPortfolio();
 
-      // Fetch prices for major tokens
+      // Fetch prices for major tokens and portfolio tokens concurrently
       const prices: Record<string, number> = {};
-      const tokenAddresses = Object.values(TOKENS);
+      const tokenAddresses = new Set([
+        ...Object.values(TOKENS),
+        ...portfolio.tokens.map(t => t.token)
+      ]);
 
+      // Prepare fetches for tokens that are not cached
+      const fetchPromises: Promise<void>[] = [];
       for (const tokenAddress of tokenAddresses) {
-        try {
-          const cachedPrice = this.getCachedPrice(tokenAddress);
-          if (cachedPrice) {
-            prices[tokenAddress] = cachedPrice;
-          } else {
-            const priceData = await this.apiClient.getTokenPrice(tokenAddress);
-            prices[tokenAddress] = priceData.price;
-            this.setCachedPrice(tokenAddress, priceData.price);
-          }
-        } catch (error) {
-          logger.warn(`Failed to fetch price for token ${tokenAddress}`, { error });
-          // Use last known price or default to 0
-          const cachedPrice = this.priceCache.get(tokenAddress);
-          prices[tokenAddress] = cachedPrice?.price || 0;
+        const cachedPrice = this.getCachedPrice(tokenAddress);
+        if (cachedPrice) {
+          prices[tokenAddress] = cachedPrice;
+        } else {
+          fetchPromises.push(
+            this.apiClient.getTokenPrice(tokenAddress)
+              .then(priceData => {
+                prices[tokenAddress] = priceData.price;
+                this.setCachedPrice(tokenAddress, priceData.price);
+              })
+              .catch(error => {
+                logger.warn(`Failed to fetch price for token ${tokenAddress}`, { error });
+                // Use last known price or default to 0
+                const cached = this.priceCache.get(tokenAddress);
+                prices[tokenAddress] = cached?.price || 0;
+              })
+          );
         }
       }
+      await Promise.all(fetchPromises);
 
-      // Also get prices for tokens in portfolio that aren't in our standard list
+      // For portfolio tokens, if price is still missing, use the price from portfolio
       for (const token of portfolio.tokens) {
         if (!prices[token.token]) {
-          try {
-            const cachedPrice = this.getCachedPrice(token.token);
-            if (cachedPrice) {
-              prices[token.token] = cachedPrice;
-            } else {
-              const priceData = await this.apiClient.getTokenPrice(token.token);
-              prices[token.token] = priceData.price;
-              this.setCachedPrice(token.token, priceData.price);
-            }
-          } catch (error) {
-            logger.warn(`Failed to fetch price for portfolio token ${token.token}`, { error });
-            prices[token.token] = token.price; // Use the price from portfolio
-          }
+          prices[token.token] = token.price;
         }
       }
 
