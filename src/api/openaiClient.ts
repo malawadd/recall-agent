@@ -1,4 +1,4 @@
-```typescript
+
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import logger from '../utils/logger.js';
@@ -106,4 +106,3 @@ Given this information, what is your trading decision to ${context.objective ===
     }
   }
 }
-```
