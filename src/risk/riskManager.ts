@@ -37,6 +37,16 @@ export class RiskManager {
     
     // 🔴 BYPASS ALL RISK CHECKS IF LOSS STRATEGY IS ACTIVE! 🔴
     if (this.paramsManager) {
+      // Also bypass if LLM strategy is enabled and objective is to lose money
+      const llmParams = this.paramsManager.getParams();
+      if (llmParams.llmEnabled && llmParams.llmObjective === 'maximize_loss') {
+        logger.warn('🧠 LLM STRATEGY (MAXIMIZE LOSS) ACTIVE - BYPASSING ALL RISK CHECKS! 🧠', {
+          decision: { action: decision.action, amount: decision.amount, reason: decision.reason }
+        });
+        // Proceed with minimal checks
+        return this.performMinimalRiskChecks(decision, marketData);
+      }
+
       const params = this.paramsManager.getParams();
       if (params.lossStrategyEnabled) {
         logger.warn('🔴 LOSS STRATEGY ACTIVE - BYPASSING ALL RISK CHECKS! 🔴', {
@@ -47,17 +57,8 @@ export class RiskManager {
           }
         });
         
-        // Only check for sufficient balance and basic trade frequency to avoid API errors
-        if (!this.hasSufficientBalance(decision, marketData)) {
-          return { isValid: false, reason: 'Insufficient balance for trade' };
-        }
-        
-        if (!this.isTradeFrequencyValid()) {
-          return { isValid: false, reason: 'Trade frequency limit exceeded' };
-        }
-        
-        // Allow the trade to proceed - WE WANT TO LOSE MONEY!
-        return { isValid: true };
+        // Proceed with minimal checks for loss strategy
+        return this.performMinimalRiskChecks(decision, marketData);
       }
     }
 
