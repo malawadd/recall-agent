@@ -223,3 +223,73 @@ The Command Center runs an Express server, typically on port `3001` (configurabl
     }
     ```
 ```
+
+### 9. `POST /command/toggle-llm-strategy`
+
+*   **Description**: Toggles the AI-driven (LLM) trading strategy on or off. When enabled, the agent will use an LLM to make trading decisions.
+*   **Method**: `POST`
+*   **Request Body**: A JSON object with a boolean `enable` field.
+    *   `enable`: (`boolean`) - `true` to enable the LLM strategy, `false` to disable.
+*   **Example Request (Enable)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/toggle-llm-strategy \
+      -H "Content-Type: application/json" \
+      -d '{"enable": true}'
+    ```
+*   **Example Request (Disable)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/toggle-llm-strategy \
+      -H "Content-Type: application/json" \
+      -d '{"enable": false}'
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "message": "LLM strategy enabled",
+      "llmEnabled": true
+    }
+    ```+
+### 10. `POST /command/set-llm-objective`
+
+*   **Description**: Sets the objective for the LLM when the LLM strategy is enabled.
+*   **Method**: `POST`
+*   **Request Body**: A JSON object with an `objective` field.
+    *   `objective`: (`'maximize_profit'` | `'maximize_loss'`) - The goal for the LLM.
+*   **Example Request (Maximize Profit)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/set-llm-objective \
+      -H "Content-Type: application/json" \
+      -d '{"objective": "maximize_profit"}'
+    ```
+*   **Example Request (Maximize Loss)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/set-llm-objective \
+      -H "Content-Type: application/json" \
+      -d '{"objective": "maximize_loss"}'
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "message": "LLM objective set to maximize_loss",
+      "llmObjective": "maximize_loss"
+    }
+    ```
+
+### 11. `GET /command/llm-status`
+
+*   **Description**: Retrieves the current status of the LLM strategy, including whether it's enabled and its current objective.
+*   **Method**: `GET`
+*   **Example Request**:
+    ```bash
+    curl http://localhost:3001/command/llm-status
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "llmEnabled": true,
+      "llmObjective": "maximize_loss"
+    }
+    ``````
