@@ -1,16 +1,19 @@
 import logger from '../utils/logger.js';
 import RecallApiClient from '../api/recallApiClient.js';
+import CoinGeckoClient from '../api/coinGeckoClient.js';
 import { Portfolio, MarketData, TOKENS } from '../types/index.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
 
 export class DataIngestor {
   private apiClient: RecallApiClient;
+  private coinGeckoClient: CoinGeckoClient;
   private marketDataRepository: MarketDataRepository;
   private priceCache: Map<string, { price: number; timestamp: number }> = new Map();
   private cacheTimeout: number = 60000; // 1 minute cache
 
   constructor(apiClient: RecallApiClient, marketDataRepository: MarketDataRepository) {
     this.apiClient = apiClient;
+    this.coinGeckoClient = new CoinGeckoClient();
     this.marketDataRepository = marketDataRepository;
   }
 
@@ -62,6 +65,13 @@ export class DataIngestor {
       const marketData: MarketData = {
         portfolio,
         prices,
+        externalMarketData: {
+          coinGecko: {
+            lastUpdated: new Date().toISOString(),
+            // External data will be fetched on-demand by strategies
+            available: true
+          }
+        },
         timestamp: new Date().toISOString()
       };
 

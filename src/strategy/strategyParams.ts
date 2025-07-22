@@ -21,6 +21,11 @@ export interface StrategyParams {
   offPeakTradeIntervalMultiplier: number;
   peakPositionSizeMultiplier: number;
   offPeakPositionSizeMultiplier: number;
+  // Loss Strategy Parameters (RED BUTTON!)
+  lossStrategyEnabled: boolean;
+  lossStrategyTargetAllocation: number;
+  lossStrategyMinMarketCapUSD: number;
+  lossStrategySelectionMethod: 'most_negative_change' | 'highest_volatility';
 }
 
 export class StrategyParamsManager {
@@ -61,7 +66,12 @@ export class StrategyParamsManager {
       peakTradeIntervalMultiplier: 0.4,    // MUCH more frequent trades during peak hours
       offPeakTradeIntervalMultiplier: 1.0, // More frequent trades during off-peak
       peakPositionSizeMultiplier: 1.2,     // Slightly larger positions during peak
-      offPeakPositionSizeMultiplier: 0.8   // Smaller positions during off-peak
+      offPeakPositionSizeMultiplier: 0.8,  // Smaller positions during off-peak
+      // Loss Strategy Defaults (RED BUTTON!)
+      lossStrategyEnabled: false,           // DISABLED by default - toggle via command center
+      lossStrategyTargetAllocation: 0.95,   // Hold 95% of portfolio in losing token
+      lossStrategyMinMarketCapUSD: 100_000_000, // $100M minimum market cap for liquidity
+      lossStrategySelectionMethod: 'most_negative_change' // Pick the token losing the most
     };
   }
 

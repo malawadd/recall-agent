@@ -40,7 +40,7 @@ export class TradingAgent {
     this.dataIngestor = new DataIngestor(this.apiClient, this.database.marketData);
     this.strategyParamsManager = new StrategyParamsManager();
     this.strategyOrchestrator = new StrategyOrchestrator(this.strategyParamsManager, this.database.marketData);
-    this.riskManager = new RiskManager();
+    this.riskManager = new RiskManager(this.strategyParamsManager);
     
     // Initialize command server
     const commandServerPort = parseInt(process.env.COMMAND_SERVER_PORT || '3001');
@@ -417,6 +417,39 @@ export class TradingAgent {
   async updateRiskParams(newParams: any): Promise<void> {
     logger.info('Updating risk parameters', { newParams });
     this.riskManager.updateRiskParams(newParams);
+  }
+
+  async toggleLossStrategy(enable: boolean): Promise<void> {
+    const message = enable 
+      ? '🔴 LOSS STRATEGY ACTIVATED - PREPARE TO LOSE ALL MONEY! 🔴'
+      : '✅ Loss strategy deactivated - normal trading resumed';
+    
+    logger.warn(message, { lossStrategyEnabled: enable });
+    
+    this.strategyParamsManager.setParam('lossStrategyEnabled', enable);
+    
+    // Update agent state to reflect the change
+    this.agentState.riskLevel = enable ? 'high' : 'medium';
+    this.agentState.updatedAt = new Date().toISOString();
+    this.database.saveAgentState(this.agentState);
+  }
+
+  async getLossStrategyStatus(): Promise<any> {
+    try {
+      const params = this.strategyParamsManager.getParams();
+      const lossStrategyState = this.strategyOrchestrator.getLossStrategyState();
+      
+      return {
+        enabled: params.lossStrategyEnabled,
+        targetAllocation: params.lossStrategyTargetAllocation,
+        minMarketCap: params.lossStrategyMinMarketCapUSD,
+        selectionMethod: params.lossStrategySelectionMethod,
+        state: lossStrategyState
+      };
+    } catch (error) {
+      logger.error('Error getting loss strategy status', { error });
+      return { error: 'Failed to get loss strategy status' };
+    }
   }
 }
 

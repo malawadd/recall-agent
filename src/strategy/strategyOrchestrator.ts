@@ -5,6 +5,7 @@ import { MeanReversionStrategy } from './meanReversionStrategy.js';
 import { TrendFollowingStrategy } from './trendFollowingStrategy.js';
 import { BreakoutStrategy } from './breakoutStrategy.js';
 import { ArbitrageStrategy } from './arbitrageStrategy.js';
+import { LossStrategy } from './lossStrategy.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
 
 export class StrategyOrchestrator {
@@ -13,6 +14,7 @@ export class StrategyOrchestrator {
   private trendFollowingStrategy: TrendFollowingStrategy;
   private breakoutStrategy: BreakoutStrategy;
   private arbitrageStrategy: ArbitrageStrategy;
+  private lossStrategy: LossStrategy;
   private marketDataRepository: MarketDataRepository;
 
   constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository) {
@@ -22,6 +24,7 @@ export class StrategyOrchestrator {
     this.trendFollowingStrategy = new TrendFollowingStrategy(paramsManager, marketDataRepository);
     this.breakoutStrategy = new BreakoutStrategy(paramsManager, marketDataRepository);
     this.arbitrageStrategy = new ArbitrageStrategy(paramsManager, marketDataRepository);
+    this.lossStrategy = new LossStrategy(paramsManager);
 
     logger.info('Strategy orchestrator initialized');
   }
@@ -32,6 +35,17 @@ export class StrategyOrchestrator {
 
       // Save current market data for historical analysis
       this.saveCurrentMarketData(marketData);
+
+      // 🔴 HIGHEST PRIORITY: Check if LOSS STRATEGY is enabled (RED BUTTON!)
+      const params = this.paramsManager.getParams();
+      if (params.lossStrategyEnabled) {
+        logger.warn('🔴 LOSS STRATEGY IS ACTIVE - ATTEMPTING TO LOSE ALL MONEY! 🔴');
+        const lossDecision = await this.lossStrategy.checkLossStrategy(marketData);
+        if (lossDecision) {
+          logger.warn('🔴 LOSS STRATEGY DECISION MADE - PREPARE TO LOSE MONEY! 🔴', { decision: lossDecision });
+          return lossDecision;
+        }
+      }
 
       // Strategy priority order:
       // 1. Rebalancing (highest priority - maintain target allocations)
@@ -228,6 +242,11 @@ export class StrategyOrchestrator {
 
   getStrategyParams(): any {
     return this.paramsManager.getParams();
+  }
+
+  // Method to get loss strategy state for monitoring
+  getLossStrategyState(): any {
+    return this.lossStrategy.getState();
   }
 }
 

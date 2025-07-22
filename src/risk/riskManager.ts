@@ -1,7 +1,9 @@
 import logger from '../utils/logger.js';
 import { TradingDecision, MarketData, AgentState } from '../types/index.js';
+import { StrategyParamsManager } from '../strategy/strategyParams.js';
 
 export class RiskManager {
+  private paramsManager: StrategyParamsManager;
   private riskParams: {
     maxDailyLoss: number;
     maxPositionSize: number;
@@ -13,7 +15,8 @@ export class RiskManager {
 
   private tradeHistory: Array<{ timestamp: number; amount: number }> = [];
 
-  constructor() {
+  constructor(paramsManager?: StrategyParamsManager) {
+    this.paramsManager = paramsManager!;
     this.riskParams = {
       maxDailyLoss: parseFloat(process.env.MAX_DAILY_LOSS_PERCENT || '15') / 100, // 15% daily loss (SUPER RISKY)
       maxPositionSize: parseFloat(process.env.MAX_POSITION_SIZE_PERCENT || '50') / 100, // 50% position size (SUPER RISKY)
@@ -32,6 +35,32 @@ export class RiskManager {
     agentState: AgentState
   ): { isValid: boolean; reason?: string } {
     
+    // 🔴 BYPASS ALL RISK CHECKS IF LOSS STRATEGY IS ACTIVE! 🔴
+    if (this.paramsManager) {
+      const params = this.paramsManager.getParams();
+      if (params.lossStrategyEnabled) {
+        logger.warn('🔴 LOSS STRATEGY ACTIVE - BYPASSING ALL RISK CHECKS! 🔴', {
+          decision: {
+            action: decision.action,
+            amount: decision.amount,
+            reason: decision.reason
+          }
+        });
+        
+        // Only check for sufficient balance and basic trade frequency to avoid API errors
+        if (!this.hasSufficientBalance(decision, marketData)) {
+          return { isValid: false, reason: 'Insufficient balance for trade' };
+        }
+        
+        if (!this.isTradeFrequencyValid()) {
+          return { isValid: false, reason: 'Trade frequency limit exceeded' };
+        }
+        
+        // Allow the trade to proceed - WE WANT TO LOSE MONEY!
+        return { isValid: true };
+      }
+    }
+
     // Check if agent is active
     if (!agentState.isActive) {
       return { isValid: false, reason: 'Agent is not active' };

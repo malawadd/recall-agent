@@ -81,6 +81,12 @@ export interface AgentState {
 export interface MarketData {
   portfolio: Portfolio;
   prices: Record<string, number>;
+  externalMarketData?: {
+    coinGecko?: {
+      lastUpdated: string;
+      available: boolean;
+    };
+  };
   timestamp: string;
 }
 

@@ -189,6 +189,56 @@ export class CommandServer {
       }
     });
 
+    // 🔴 POST /command/toggle-loss-strategy - THE RED BUTTON! 🔴
+    this.app.post('/command/toggle-loss-strategy', async (req: Request, res: Response) => {
+      try {
+        const { enable } = req.body;
+        
+        if (typeof enable !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            error: 'enable parameter must be a boolean (true/false)'
+          });
+        }
+
+        await this.agent.toggleLossStrategy(enable);
+
+        const message = enable 
+          ? '🔴 LOSS STRATEGY ACTIVATED - PREPARE TO LOSE ALL MONEY! 🔴'
+          : '✅ Loss strategy deactivated - normal trading resumed';
+
+        res.json({
+          success: true,
+          message,
+          lossStrategyEnabled: enable
+        });
+
+      } catch (error) {
+        logger.error('Error toggling loss strategy', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to toggle loss strategy'
+        });
+      }
+    });
+
+    // GET /command/loss-strategy-status - Check loss strategy status
+    this.app.get('/command/loss-strategy-status', async (req: Request, res: Response) => {
+      try {
+        const status = await this.agent.getLossStrategyStatus();
+        res.json({
+          success: true,
+          status
+        });
+      } catch (error) {
+        logger.error('Error getting loss strategy status', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get loss strategy status'
+        });
+      }
+    });
+
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({
