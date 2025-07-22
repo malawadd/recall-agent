@@ -34,7 +34,7 @@ export class OpenAIClient {
     try {
       logger.info('Requesting trading decision from OpenAI...', { objective: context.objective });
 
-      const systemPrompt = \`You are an AI trading agent. Your goal is to ${context.objective === 'maximize_profit' ? 'maximize the profit of the portfolio' : 'lose all the money in the portfolio as quickly as possible'}.
+      const systemPrompt = `You are an AI trading agent. Your goal is to ${context.objective === 'maximize_profit' ? 'maximize the profit of the portfolio' : 'lose all the money in the portfolio as quickly as possible'}.
 You will receive current market data, your portfolio, and agent state.
 Based on this information and your objective, you must decide on a single trading action.
 Your response MUST be a JSON object with the following structure:
@@ -53,7 +53,7 @@ If your objective is to maximize loss, identify tokens that are currently perfor
 If your objective is to maximize profit, identify tokens that are performing well and buy them, or sell tokens that are performing poorly.
 `;
 
-      const userPrompt = \`Current Portfolio: ${JSON.stringify(context.portfolio, null, 2)}
+      const userPrompt = `Current Portfolio: ${JSON.stringify(context.portfolio, null, 2)}
 Current Prices: ${JSON.stringify(context.prices, null, 2)}
 Agent State: ${JSON.stringify(context.agentState, null, 2)}
 Risk Parameters: ${JSON.stringify(context.riskParams, null, 2)}
