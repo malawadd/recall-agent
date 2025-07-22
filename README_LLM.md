@@ -1,4 +1,4 @@
-```markdown
+
 # LLM-Driven Trading Strategy
 
 This document explains how to use and configure the Large Language Model (LLM)-driven trading strategy within the Recall Trading Agent. This advanced strategy allows the agent to make dynamic trading decisions based on real-time market data and a specified objective.
@@ -121,4 +121,3 @@ The `topCoinsByMarketCap` array provides a dynamic snapshot of the broader crypt
 *   **Latency**: LLM API calls introduce latency. The agent will wait for the LLM's response before proceeding.
 *   **Decision Quality**: The effectiveness of the LLM's decisions depends on the model's capabilities, the clarity of the prompt, and the quality/completeness of the input data. Experiment with different models and prompt variations.
 *   **Risk Bypass**: Be extremely cautious when using the `maximize_loss` objective, as it intentionally bypasses critical risk checks.
-```
