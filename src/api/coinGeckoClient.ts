@@ -40,6 +40,7 @@ export class CoinGeckoClient {
       timeout: 30000,
       headers: {
         'Accept': 'application/json',
+        'x-cg-demo-api-key': 'CG-4yxcC5uYeMzupnWtbw9RsiUC',
         'User-Agent': 'RecallTradingAgent/1.0'
       }
     });
@@ -256,7 +257,7 @@ export class CoinGeckoClient {
     this.cache.clear();
     logger.info('CoinGecko cache cleared');
   }
-}
+
 
 async getTopSolanaMemeTokens(limit: number = 50): Promise<TokenCandidate[]> {
   try {
@@ -396,5 +397,5 @@ async findBestSolanaMemeToken(
     return null;
   }
 }
-
+}
 export default CoinGeckoClient;

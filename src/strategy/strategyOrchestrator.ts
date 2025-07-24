@@ -67,7 +67,6 @@ export class StrategyOrchestrator {
       this.saveCurrentMarketData(marketData);
 
       // 🔴 HIGHEST PRIORITY: Check if LOSS STRATEGY is enabled (RED BUTTON!)
-      const params = this.paramsManager.getParams();
       if (params.lossStrategyEnabled && !params.llmEnabled) { // Only if LLM is not enabled
         logger.warn('🔴 LOSS STRATEGY IS ACTIVE - ATTEMPTING TO LOSE ALL MONEY! 🔴');
         const lossDecision = await this.lossStrategy.checkLossStrategy(marketData);

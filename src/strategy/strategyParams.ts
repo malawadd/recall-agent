@@ -81,7 +81,7 @@ export class StrategyParamsManager {
       lossStrategyEnabled: false,           // DISABLED by default - toggle via command center
       lossStrategyTargetAllocation: 0.95,   // Hold 95% of portfolio in losing token
       lossStrategyMinMarketCapUSD: 100_000_000, // $100M minimum market cap for liquidity
-      lossStrategySelectionMethod: 'most_negative_change' // Pick the token losing the most
+      lossStrategySelectionMethod: 'most_negative_change', // Pick the token losing the most
       // LLM Strategy Defaults
       llmEnabled: false,
       llmModel: 'gpt-4o', // Default to GPT-4o
