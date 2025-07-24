@@ -470,6 +470,55 @@ export class TradingAgent {
       return { error: 'Failed to get loss strategy status' };
     }
   }
+
+  async toggleGuaranteedMemeMode(enable: boolean): Promise<void> {
+    const message = enable 
+      ? '🚀 GUARANTEED MEME MODE ACTIVATED - PREPARE TO ACCUMULATE ALL THE MEMES! 🚀'
+      : '✅ Guaranteed meme mode deactivated - normal trading resumed';
+    
+    logger.warn(message, { guaranteedMemeEnabled: enable });
+    
+    this.strategyParamsManager.setParam('guaranteedMemeTradeEnabled', enable);
+    
+    // Update agent state to reflect the change
+    this.agentState.riskLevel = enable ? 'high' : 'medium';
+    this.agentState.updatedAt = new Date().toISOString();
+    this.database.saveAgentState(this.agentState);
+  }
+
+  async updateGuaranteedMemeParams(newParams: any): Promise<void> {
+    logger.info('Updating guaranteed meme parameters', { newParams });
+    
+    // Validate and update specific meme parameters
+    const validParams = ['guaranteedMemeTradeAmountUSD', 'guaranteedMemeTokenSelectionMethod', 'guaranteedMemeSpecificTokenAddress'];
+    const filteredParams: any = {};
+    
+    for (const [key, value] of Object.entries(newParams)) {
+      if (validParams.includes(key)) {
+        filteredParams[key] = value;
+      }
+    }
+    
+    this.strategyParamsManager.updateParams(filteredParams);
+  }
+
+  async getGuaranteedMemeStatus(): Promise<any> {
+    try {
+      const params = this.strategyParamsManager.getParams();
+      const guaranteedMemeState = this.strategyOrchestrator.getGuaranteedMemeStrategyState();
+      
+      return {
+        enabled: params.guaranteedMemeTradeEnabled,
+        tradeAmountUSD: params.guaranteedMemeTradeAmountUSD,
+        selectionMethod: params.guaranteedMemeTokenSelectionMethod,
+        specificTokenAddress: params.guaranteedMemeSpecificTokenAddress,
+        state: guaranteedMemeState
+      };
+    } catch (error) {
+      logger.error('Error getting guaranteed meme status', { error });
+      return { error: 'Failed to get guaranteed meme status' };
+    }
+  }
 }
 
 // Main execution

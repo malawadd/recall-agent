@@ -90,7 +90,9 @@ export class RecallApiClient {
         from: tradeRequest.fromToken,
         to: tradeRequest.toToken,
         amount: tradeRequest.amount,
-        reason: tradeRequest.reason
+        reason: tradeRequest.reason,
+        fromChain: tradeRequest.fromChain,
+        toChain: tradeRequest.toChain
       });
 
       const response = await this.client.post('/api/trade/execute', tradeRequest);

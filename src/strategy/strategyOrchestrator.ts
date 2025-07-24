@@ -6,9 +6,8 @@ import { TrendFollowingStrategy } from './trendFollowingStrategy.js';
 import { BreakoutStrategy } from './breakoutStrategy.js';
 import { ArbitrageStrategy } from './arbitrageStrategy.js';
 import { LossStrategy } from './lossStrategy.js';
+import { GuaranteedMemeStrategy } from './guaranteedMemeStrategy.js';
 import { MarketDataRepository } from '../database/marketDataRepository.js';
-import { OpenAIClient } from '../api/openaiClient.js';
-import { RiskManager } from '../risk/riskManager.js';
 import { OpenAIClient } from '../api/openaiClient.js';
 import { RiskManager } from '../risk/riskManager.js';
 
@@ -19,12 +18,10 @@ export class StrategyOrchestrator {
   private breakoutStrategy: BreakoutStrategy;
   private arbitrageStrategy: ArbitrageStrategy;
   private lossStrategy: LossStrategy;
+  private guaranteedMemeStrategy: GuaranteedMemeStrategy;
   private marketDataRepository: MarketDataRepository;
   private openAIClient: OpenAIClient;
   private riskManager: RiskManager; // Added to pass to LLM for context
-
-  constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository, openAIClient: OpenAIClient, riskManager: RiskManager) {
-  }
 
   constructor(paramsManager: StrategyParamsManager, marketDataRepository: MarketDataRepository, openAIClient: OpenAIClient, riskManager: RiskManager) {
     this.paramsManager = paramsManager;
@@ -34,8 +31,7 @@ export class StrategyOrchestrator {
     this.breakoutStrategy = new BreakoutStrategy(paramsManager, marketDataRepository);
     this.arbitrageStrategy = new ArbitrageStrategy(paramsManager, marketDataRepository);
     this.lossStrategy = new LossStrategy(paramsManager);
-    this.openAIClient = openAIClient;
-    this.riskManager = riskManager;
+    this.guaranteedMemeStrategy = new GuaranteedMemeStrategy(paramsManager);
     this.openAIClient = openAIClient;
     this.riskManager = riskManager;
 
@@ -44,27 +40,6 @@ export class StrategyOrchestrator {
 
   async makeDecision(marketData: MarketData): Promise<TradingDecision | null> {
     try {
-      const params = this.paramsManager.getParams();
-
-      // 🧠 LLM Strategy (Highest Priority if enabled)
-      if (params.llmEnabled) {
-        logger.info('🧠 LLM Strategy is ENABLED - Requesting decision from AI...');
-        const llmDecision = await this.openAIClient.getTradingDecision({
-          portfolio: marketData.portfolio,
-          prices: marketData.prices,
-          agentState: { /* simplified agent state for LLM */ }, // Pass relevant parts
-          riskParams: this.riskManager.getRiskParams(), // Pass current risk parameters
-          objective: params.llmObjective,
-          marketInsights: {
-            topLosingTokens: await this.lossStrategy['coinGeckoClient'].getTopLosingTokens(params.lossStrategyMinMarketCapUSD, 5) // Provide top 5 losing tokens as insight
-          }
-        });
-        if (llmDecision) {
-          logger.info('🧠 LLM Strategy decision made', { decision: llmDecision });
-          return llmDecision;
-        }
-      }
-
       const params = this.paramsManager.getParams();
 
       // 🧠 LLM Strategy (Highest Priority if enabled)
@@ -152,8 +127,15 @@ export class StrategyOrchestrator {
         return arbitrageDecision;
       }
 
-      // This should never happen now, but just in case
-      logger.warn('⚠️  Even arbitrage strategy failed - this should not happen!');
+      // 🚀 ABSOLUTE LAST FALLBACK: GUARANTEED MEME TOKEN TRADE! 🚀
+      const guaranteedMemeDecision = await this.guaranteedMemeStrategy.makeGuaranteedMemeDecision(marketData);
+      if (guaranteedMemeDecision) {
+        logger.info('🚀 GUARANTEED MEME TRADE EXECUTED - ACCUMULATING MEME TOKENS! 🚀', { decision: guaranteedMemeDecision });
+        return guaranteedMemeDecision;
+      }
+
+      // This should REALLY never happen now
+      logger.warn('⚠️  Even guaranteed meme strategy failed - this should not happen!');
       return null;
 
     } catch (error) {
@@ -302,6 +284,11 @@ export class StrategyOrchestrator {
   // Method to get loss strategy state for monitoring
   getLossStrategyState(): any {
     return this.lossStrategy.getState();
+  }
+
+  // Method to get guaranteed meme strategy state for monitoring
+  getGuaranteedMemeStrategyState(): any {
+    return this.guaranteedMemeStrategy.getState();
   }
 }
 

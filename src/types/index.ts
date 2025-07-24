@@ -64,6 +64,7 @@ export interface TradingDecision {
   // @ts-ignore
   reason: string;
   confidence: number;
+  isGuaranteedMemeTrade?: boolean;
 }
 
 export interface AgentState {
@@ -105,5 +106,7 @@ export const CHAINS = {
   ETHEREUM: 'eth',
   ARBITRUM: 'arbitrum',
   OPTIMISM: 'optimism',
-  BASE: 'base'
+  BASE: 'base',
+  SOLANA: 'svm',
+  SVM: 'svm'
 } as const;

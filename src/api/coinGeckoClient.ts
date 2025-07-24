@@ -258,4 +258,143 @@ export class CoinGeckoClient {
   }
 }
 
+async getTopSolanaMemeTokens(limit: number = 50): Promise<TokenCandidate[]> {
+  try {
+    const cacheKey = `top_solana_meme_${limit}`;
+    const cached = this.getCachedData(cacheKey);
+    if (cached) {
+      logger.debug('Using cached CoinGecko data for top Solana meme tokens');
+      return cached;
+    }
+
+    logger.info('Fetching top Solana meme tokens from CoinGecko...', { limit });
+
+    const response = await this.client.get('/coins/markets', {
+      params: {
+        vs_currency: 'usd',
+        order: 'volume_desc', // Order by volume to get actively traded tokens
+        per_page: limit * 3, // Get more to filter down
+        page: 1,
+        sparkline: false,
+        price_change_percentage: '1h,24h',
+        include_platform: true
+      }
+    });
+
+    const marketData: CoinGeckoMarketData[] = response.data;
+
+    // Major Solana ecosystem tokens to exclude (not meme tokens)
+    const excludedTokens = new Set([
+      'solana', 'serum', 'raydium', 'orca', 'marinade', 'jito-governance-token',
+      'jupiter-exchange-solana', 'pyth-network', 'render-token', 'helium',
+      'bonk', 'dogwifcoin' // These are already established meme tokens
+    ]);
+
+    // Filter and transform the data for Solana meme tokens
+    const tokenCandidates: TokenCandidate[] = marketData
+      .filter(coin => {
+        // Must have Solana contract address
+        if (!coin.platforms?.solana) return false;
+        
+        // Exclude major ecosystem tokens
+        if (excludedTokens.has(coin.id)) return false;
+        
+        // Meme token characteristics: market cap between $1M - $1B
+        if (coin.market_cap < 1_000_000 || coin.market_cap > 1_000_000_000) return false;
+        
+        // Must have reasonable volume (liquidity for trading)
+        if (coin.total_volume < 100_000) return false;
+        
+        // High volatility indicator (combined 1h + 24h changes > 5%)
+        const totalVolatility = Math.abs(coin.price_change_percentage_1h || 0) + 
+                               Math.abs(coin.price_change_percentage_24h || 0);
+        if (totalVolatility < 5) return false;
+        
+        return true;
+      })
+      .map(coin => ({
+        contractAddress: coin.platforms.solana!,
+        symbol: coin.symbol.toUpperCase(),
+        name: coin.name,
+        currentPrice: coin.current_price,
+        marketCap: coin.market_cap,
+        priceChange24h: coin.price_change_percentage_24h,
+        priceChange1h: coin.price_change_percentage_1h || 0,
+        volume: coin.total_volume
+      }))
+      .sort((a, b) => b.volume - a.volume) // Sort by volume (most liquid first)
+      .slice(0, limit); // Take only the requested limit
+
+    this.setCachedData(cacheKey, tokenCandidates);
+
+    logger.info('Top Solana meme tokens fetched successfully', {
+      totalFound: tokenCandidates.length,
+      topToken: tokenCandidates[0] ? {
+        symbol: tokenCandidates[0].symbol,
+        marketCap: (tokenCandidates[0].marketCap / 1_000_000).toFixed(1) + 'M',
+        volume: (tokenCandidates[0].volume / 1_000_000).toFixed(1) + 'M'
+      } : null
+    });
+
+    return tokenCandidates;
+
+  } catch (error) {
+    logger.error('Failed to fetch top Solana meme tokens from CoinGecko', { error });
+    return [];
+  }
+}
+
+async findBestSolanaMemeToken(
+  selectionMethod: 'random_top_solana_meme' | 'most_negative_solana_change' | 'specific_solana_token',
+  specificTokenAddress?: string
+): Promise<TokenCandidate | null> {
+  try {
+    if (selectionMethod === 'specific_solana_token' && specificTokenAddress) {
+      // Try to get data for the specific token
+      const specificTokens = await this.getSpecificTokenData([specificTokenAddress]);
+      if (specificTokens.length > 0) {
+        return specificTokens[0];
+      }
+      logger.warn('Specific Solana token not found, falling back to random selection');
+    }
+
+    if (selectionMethod === 'most_negative_solana_change') {
+      // Get losing tokens and filter for Solana
+      const losingTokens = await this.getTopLosingTokens(50_000_000, 100);
+      const solanaLosingTokens = losingTokens.filter(token => 
+        token.contractAddress && token.contractAddress.length < 50 // Solana addresses are shorter
+      );
+      
+      if (solanaLosingTokens.length > 0) {
+        return solanaLosingTokens[0]; // Most negative change
+      }
+    }
+
+    // Default: random_top_solana_meme or fallback
+    const memeTokens = await this.getTopSolanaMemeTokens(20);
+    if (memeTokens.length === 0) {
+      logger.warn('No Solana meme tokens found');
+      return null;
+    }
+
+    // Select a random token from the top candidates
+    const randomIndex = Math.floor(Math.random() * memeTokens.length);
+    const selectedToken = memeTokens[randomIndex];
+
+    logger.info('Best Solana meme token selected', {
+      symbol: selectedToken.symbol,
+      contractAddress: selectedToken.contractAddress,
+      marketCap: (selectedToken.marketCap / 1_000_000).toFixed(1) + 'M',
+      volume: (selectedToken.volume / 1_000_000).toFixed(1) + 'M',
+      selectionMethod
+    });
+
+    return selectedToken;
+
+  } catch (error) {
+    logger.error('Error finding best Solana meme token', { error });
+    return null;
+  }
+}
+
 export default CoinGeckoClient;

@@ -35,6 +35,15 @@ export class RiskManager {
     agentState: AgentState
   ): { isValid: boolean; reason?: string } {
     
+    // 🚀 BYPASS ALL RISK CHECKS IF GUARANTEED MEME TRADE! 🚀
+    if (decision.isGuaranteedMemeTrade) {
+      logger.warn('🚀 GUARANTEED MEME TRADE ACTIVE - BYPASSING ALL RISK CHECKS! 🚀', {
+        decision: { action: decision.action, amount: decision.amount, reason: decision.reason }
+      });
+      // Proceed with minimal checks only
+      return this.performMinimalRiskChecks(decision, marketData);
+    }
+
     // 🔴 BYPASS ALL RISK CHECKS IF LOSS STRATEGY IS ACTIVE! 🔴
     if (this.paramsManager) {
       // Also bypass if LLM strategy is enabled and objective is to lose money

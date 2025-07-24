@@ -31,6 +31,11 @@ export interface StrategyParams {
   llmModel: string;
   llmTemperature: number;
   llmObjective: 'maximize_profit' | 'maximize_loss';
+  // Guaranteed Meme Token Strategy Parameters
+  guaranteedMemeTradeEnabled: boolean;
+  guaranteedMemeTradeAmountUSD: number;
+  guaranteedMemeTokenSelectionMethod: 'random_top_solana_meme' | 'most_negative_solana_change' | 'specific_solana_token';
+  guaranteedMemeSpecificTokenAddress: string;
 }
 
 export class StrategyParamsManager {
@@ -82,6 +87,11 @@ export class StrategyParamsManager {
       llmModel: 'gpt-4o', // Default to GPT-4o
       llmTemperature: 0.7,
       llmObjective: 'maximize_profit', // Default objective
+      // Guaranteed Meme Token Strategy Defaults
+      guaranteedMemeTradeEnabled: false,           // DISABLED by default - toggle via command center
+      guaranteedMemeTradeAmountUSD: 10,            // Small $10 trades for meme accumulation
+      guaranteedMemeTokenSelectionMethod: 'random_top_solana_meme', // Random selection from top meme tokens
+      guaranteedMemeSpecificTokenAddress: '',      // Empty by default
     };
   }
 

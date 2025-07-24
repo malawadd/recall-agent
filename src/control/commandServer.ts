@@ -241,6 +241,75 @@ export class CommandServer {
       }
     });
 
+    // 🚀 POST /command/toggle-guaranteed-meme-mode - THE MEME BUTTON! 🚀
+    this.app.post('/command/toggle-guaranteed-meme-mode', async (req: Request, res: Response) => {
+      try {
+        const { enable } = req.body;
+        
+        if (typeof enable !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            error: 'enable parameter must be a boolean (true/false)'
+          });
+        }
+
+        await this.agent.toggleGuaranteedMemeMode(enable);
+
+        const message = enable 
+          ? '🚀 GUARANTEED MEME MODE ACTIVATED - PREPARE TO ACCUMULATE ALL THE MEMES! 🚀'
+          : '✅ Guaranteed meme mode deactivated - normal trading resumed';
+
+        res.json({
+          success: true,
+          message,
+          guaranteedMemeEnabled: enable
+        });
+
+      } catch (error) {
+        logger.error('Error toggling guaranteed meme mode', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to toggle guaranteed meme mode'
+        });
+      }
+    });
+
+    // POST /command/update-guaranteed-meme-params - Update meme trading parameters
+    this.app.post('/command/update-guaranteed-meme-params', async (req: Request, res: Response) => {
+      try {
+        const newParams = req.body;
+        await this.agent.updateGuaranteedMemeParams(newParams);
+        res.json({
+          success: true,
+          message: 'Guaranteed meme parameters updated successfully',
+          params: newParams
+        });
+      } catch (error) {
+        logger.error('Error updating guaranteed meme parameters', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update guaranteed meme parameters'
+        });
+      }
+    });
+
+    // GET /command/guaranteed-meme-status - Check guaranteed meme mode status
+    this.app.get('/command/guaranteed-meme-status', async (req: Request, res: Response) => {
+      try {
+        const status = await this.agent.getGuaranteedMemeStatus();
+        res.json({
+          success: true,
+          status
+        });
+      } catch (error) {
+        logger.error('Error getting guaranteed meme status', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get guaranteed meme status'
+        });
+      }
+    });
+
     // POST /command/toggle-llm-strategy - Toggle LLM strategy
     this.app.post('/command/toggle-llm-strategy', async (req: Request, res: Response) => {
       try {
