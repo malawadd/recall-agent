@@ -1,4 +1,3 @@
-
 # Trading Agent Command Center API Reference
 
 This document provides a comprehensive reference for the API endpoints exposed by your Trading Agent's Command Center. You can use these endpoints to monitor, control, and interact with your agent.
@@ -249,7 +248,8 @@ The Command Center runs an Express server, typically on port `3001` (configurabl
       "message": "LLM strategy enabled",
       "llmEnabled": true
     }
-    ```+
+    ```
+
 ### 10. `POST /command/set-llm-objective`
 
 *   **Description**: Sets the objective for the LLM when the LLM strategy is enabled.
@@ -292,4 +292,88 @@ The Command Center runs an Express server, typically on port `3001` (configurabl
       "llmEnabled": true,
       "llmObjective": "maximize_loss"
     }
-    ``````
+    ```
+
+### 12. `POST /command/toggle-guaranteed-meme-mode`
+
+*   **Description**: Toggles the guaranteed meme token trading mode on or off. When enabled, the agent will make a guaranteed meme token trade every cycle if no other strategy triggers.
+*   **Method**: `POST`
+*   **Request Body**: A JSON object with a boolean `enable` field.
+    *   `enable`: (`boolean`) - `true` to enable guaranteed meme mode, `false` to disable.
+*   **Example Request (Enable)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/toggle-guaranteed-meme-mode \
+      -H "Content-Type: application/json" \
+      -d '{"enable": true}'
+    ```
+*   **Example Request (Disable)**:
+    ```bash
+    curl -X POST http://localhost:3001/command/toggle-guaranteed-meme-mode \
+      -H "Content-Type: application/json" \
+      -d '{"enable": false}'
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "message": "🚀 GUARANTEED MEME MODE ACTIVATED - PREPARE TO ACCUMULATE ALL THE MEMES! 🚀",
+      "guaranteedMemeEnabled": true
+    }
+    ```
+
+### 13. `POST /command/update-guaranteed-meme-params`
+
+*   **Description**: Updates the parameters for the guaranteed meme token trading mode.
+*   **Method**: `POST`
+*   **Request Body**: A JSON object containing the meme trading parameters to update.
+*   **Example Request**:
+    ```bash
+    curl -X POST http://localhost:3001/command/update-guaranteed-meme-params \
+      -H "Content-Type: application/json" \
+      -d '{
+        "guaranteedMemeTradeAmountUSD": 25,
+        "guaranteedMemeTokenSelectionMethod": "most_negative_solana_change"
+      }'
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "message": "Guaranteed meme parameters updated successfully",
+      "params": {
+        "guaranteedMemeTradeAmountUSD": 25,
+        "guaranteedMemeTokenSelectionMethod": "most_negative_solana_change"
+      }
+    }
+    ```
+
+### 14. `GET /command/guaranteed-meme-status`
+
+*   **Description**: Retrieves the current status of the guaranteed meme token trading mode.
+*   **Method**: `GET`
+*   **Example Request**:
+    ```bash
+    curl http://localhost:3001/command/guaranteed-meme-status
+    ```
+*   **Example Response**:
+    ```json
+    {
+      "success": true,
+      "status": {
+        "enabled": true,
+        "tradeAmountUSD": 10,
+        "selectionMethod": "random_top_solana_meme",
+        "specificTokenAddress": "",
+        "state": {
+          "enabled": true,
+          "lastSelectedToken": {
+            "symbol": "BONK",
+            "contractAddress": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+          },
+          "lastSelectionTime": 1640995200000,
+          "tradeAmountUSD": 10,
+          "selectionMethod": "random_top_solana_meme"
+        }
+      }
+    }
+    ```
